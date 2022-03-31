@@ -34,6 +34,7 @@ tasks.named('test') {
 }
 
 String imageName = "${project.name}:${project.version}"
+Integer port = 10010
 
 jib {
     allowInsecureRegistries = true
@@ -41,22 +42,22 @@ jib {
         image = imageName
     }
     container {
-        ports = ['10010']
-        labels = [maintainer: 'raul']
+        ports = [port as String]
+        getLabels().put('maintainer', 'raul')
     }
 }
 
 task runDockerLocal () {
     dependsOn('jibDockerBuild')
     doLast {
-        def containerName = "${project.name}" as String
+        def containerName = "$project.name" as String
         def networkName = 'golabab-infra'
         def networkIp = '172.19.0.101'
         def envFilePath = "$project.projectDir\\.env" as String
 
-        exec{ commandLine "docker stop ${containerName}".split(' ') }
-        exec{ commandLine "docker rm ${containerName}".split(' ') }
-        exec{ commandLine "docker run -d -p 10010:10010 --env-file $envFilePath --network $networkName --ip $networkIp --name ${containerName} ${imageName}".split(' ') }
+        exec{ commandLine "docker stop $containerName".split(' ') }
+        exec{ commandLine "docker rm $containerName".split(' ') }
+        exec{ commandLine "docker run -d -p $port:$port --env-file $envFilePath --network $networkName --ip $networkIp --name $containerName $imageName".split(' ') }
 
         System.out.println('\n Docker Build SUCCESS!')
     }
