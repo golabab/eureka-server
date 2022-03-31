@@ -2,6 +2,7 @@ plugins {
     id 'org.springframework.boot' version '2.6.5'
     id 'io.spring.dependency-management' version '1.0.11.RELEASE'
     id 'java'
+    id 'com.google.cloud.tools.jib' version '3.2.0'
 }
 
 group = 'com.golabab'
@@ -30,4 +31,33 @@ dependencyManagement {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+String imageName = "${project.name}:${project.version}"
+
+jib {
+    allowInsecureRegistries = true
+    to {
+        image = imageName
+    }
+    container {
+        ports = ['10010']
+        labels = [maintainer: 'raul']
+    }
+}
+
+task runDockerLocal () {
+    dependsOn('jibDockerBuild')
+    doLast {
+        def containerName = "${project.name}" as String
+        def networkName = 'golabab-infra'
+        def networkIp = '172.19.0.101'
+        def envFilePath = "$project.projectDir\\.env" as String
+
+        exec{ commandLine "docker stop ${containerName}".split(' ') }
+        exec{ commandLine "docker rm ${containerName}".split(' ') }
+        exec{ commandLine "docker run -d -p 10010:10010 --env-file $envFilePath --network $networkName --ip $networkIp --name ${containerName} ${imageName}".split(' ') }
+
+        System.out.println('\n Docker Build SUCCESS!')
+    }
 }
